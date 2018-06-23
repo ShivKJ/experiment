@@ -55,7 +55,7 @@ def get_data(training: bool) -> List[Data]:
             .as_seq())
 
 
-@execution_time()
+@execution_time(prefix='ANN')
 def main():
     training_data = get_data(training=True)
     testing_data = get_data(training=False)
@@ -75,7 +75,7 @@ def main():
 
     L0_L1 = x @ W1 + b1
     L1_L1 = tf.nn.relu(L0_L1)
-    
+
     L1_L2 = L1_L1 @ W2 + b2
     L2_L2 = tf.nn.softmax(L1_L2)
 
