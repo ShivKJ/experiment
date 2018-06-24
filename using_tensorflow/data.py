@@ -1,10 +1,11 @@
-from typing import List, Iterable
+from typing import Iterable, List
 
 import tensorflow as tf
 from PIL import Image
-from numpy import array, zeros, ndarray
+from numpy import array, ndarray, zeros
 from stream import Stream
-from utility import get_file_name, csv_itr, files_inside_dir, divide_in_chunk, execution_time
+from utility import (csv_itr, divide_in_chunk, execution_time, files_inside_dir,
+                     get_file_name)
 
 
 class Data:
@@ -79,7 +80,8 @@ def main():
     L1_L2 = L1_L1 @ W2 + b2
     L2_L2 = tf.nn.softmax(L1_L2)
 
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=L2_L2, labels=y), name='cost')
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=L2_L2, labels=y),
+                          name='cost')
     optimization = tf.train.AdamOptimizer(learning_rate=0.01).minimize(cost, name='optimization')
 
     init = tf.global_variables_initializer()
