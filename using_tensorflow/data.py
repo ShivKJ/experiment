@@ -1,9 +1,10 @@
+from functools import partial
 from typing import Iterable, List
 
 import tensorflow as tf
 from PIL import Image
 from numpy import array, ndarray, zeros
-from streamAPI.stream import Stream
+from streamAPI.stream import ParallelStream, Stream
 from streamAPI.utility import (csv_itr, divide_in_chunk, execution_time, files_inside_dir,
                                get_file_name)
 
@@ -34,6 +35,10 @@ class Data:
         return get_file_name(self.file) + ' -> ' + str(self.clazz)
 
 
+def create_data(_clazz: dict, files: str) -> List[Data]:
+    return [Data(file, _clazz[get_file_name(file)]) for file in files]
+
+
 @execution_time()
 def get_data(training: bool) -> List[Data]:
     if training:
@@ -48,11 +53,13 @@ def get_data(training: bool) -> List[Data]:
 
     _clazz = Stream(csv_itr(label_file)).mapping(key_mapper, value_mapper)
 
-    def create_data(file: str) -> Data:
-        return Data(file, _clazz[get_file_name(file)])
+    batch_processor = partial(create_data, _clazz)
 
-    return (files_inside_dir(image_dir, as_type=Stream)
-            .map(create_data)
+    return (files_inside_dir(image_dir, as_type=ParallelStream)
+            .concurrent(8, is_parallel=True)
+            .batch(1000)
+            .map(batch_processor, use_exec=True)
+            .flat_map()
             .as_seq())
 
 
