@@ -3,9 +3,9 @@ from typing import Iterable, List
 import tensorflow as tf
 from PIL import Image
 from numpy import array, ndarray, zeros
-from stream import Stream
-from utility import (csv_itr, divide_in_chunk, execution_time, files_inside_dir,
-                     get_file_name)
+from streamAPI.stream import Stream
+from streamAPI.utility import (csv_itr, divide_in_chunk, execution_time, files_inside_dir,
+                               get_file_name)
 
 
 class Data:
@@ -101,6 +101,7 @@ def main():
 
         for e in range(epochs):
             avg = 0
+
             for chunk in divide_in_chunk(training_data, batch_size):
                 img, clazz = img_clazz(chunk)
 
