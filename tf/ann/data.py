@@ -18,6 +18,10 @@ class Data:
 
         self.clazz = Data._label(clazz)
 
+    @classmethod
+    def create_data(cls, _clazz: dict, file: str):
+        return Data(file, _clazz[get_file_name(file)])
+
     def feature(self) -> ndarray:
         return self.input
 
@@ -35,18 +39,14 @@ class Data:
         return get_file_name(self.file) + ' -> ' + str(self.clazz)
 
 
-def create_data(_clazz: dict, file: str) -> Data:
-    return Data(file, _clazz[get_file_name(file)])
-
-
 @execution_time()
 def get_data(training: bool) -> List[Data]:
     if training:
-        label_file = 'mnist/train-labels.csv'
-        image_dir = 'mnist/train-images'
+        label_file = '../mnist/train-labels.csv'
+        image_dir = '../mnist/train-images'
     else:
-        label_file = 'mnist/test-labels.csv'
-        image_dir = 'mnist/test-images'
+        label_file = '../mnist/test-labels.csv'
+        image_dir = '../mnist/test-images'
 
     key_mapper = lambda doc: get_file_name(doc['file'])
     value_mapper = lambda doc: int(doc['class'])
@@ -59,7 +59,7 @@ def get_data(training: bool) -> List[Data]:
 
     return (files_inside_dir(image_dir,
                              as_type=lambda x: ParallelStream(x, worker, multiprocessing))
-            .batch_processor(partial(create_data, _clazz), dispatch_size)
+            .batch_processor(partial(Data.create_data, _clazz), dispatch_size)
             .as_seq())
 
 
@@ -67,7 +67,7 @@ def get_data(training: bool) -> List[Data]:
 def main():
     training_data = get_data(training=True)
     testing_data = get_data(training=False)
-    
+
     feature_size = 28 * 28
     hidden_nu = 200
     output_size = 10
