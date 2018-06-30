@@ -1,9 +1,9 @@
 from distutils.core import setup
 
 setup(
-    name='exp',
+    name='ann',
     version='0.1',
-    packages=['tf'],
+    packages=['ann'],
     url='',
     license='',
     author='skj',

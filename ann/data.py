@@ -8,6 +8,8 @@ from streamAPI.stream import ParallelStream, Stream
 from streamAPI.utility import (csv_itr, execution_time, files_inside_dir,
                                get_file_name)
 
+from logger import LOGGER_NAME
+
 
 class Data:
     def __init__(self, file: str, clazz: int):
@@ -39,14 +41,14 @@ class Data:
         return get_file_name(self.file) + ' -> ' + str(self.clazz)
 
 
-@execution_time()
+@execution_time(logger_name=LOGGER_NAME)
 def get_data(training: bool) -> List[Data]:
     if training:
-        label_file = '../mnist/train-labels.csv'
-        image_dir = '../mnist/train-images'
+        label_file = 'mnist/train-labels.csv'
+        image_dir = 'mnist/train-images'
     else:
-        label_file = '../mnist/test-labels.csv'
-        image_dir = '../mnist/test-images'
+        label_file = 'mnist/test-labels.csv'
+        image_dir = 'mnist/test-images'
 
     key_mapper = lambda doc: get_file_name(doc['file'])
     value_mapper = lambda doc: int(doc['class'])
@@ -63,7 +65,7 @@ def get_data(training: bool) -> List[Data]:
             .as_seq())
 
 
-@execution_time(prefix='ANN')
+@execution_time(prefix='ANN', logger_name=LOGGER_NAME)
 def main():
     training_data = get_data(training=True)
     testing_data = get_data(training=False)
@@ -94,7 +96,7 @@ def main():
     init = tf.global_variables_initializer()
 
     with tf.Session() as sess:
-        writer = tf.summary.FileWriter('../mnist/visualize', graph=sess.graph)
+        writer = tf.summary.FileWriter('mnist/visualize', graph=sess.graph)
         sess.run(init)
 
         def img_clazz(_data: Sequence[Data]):

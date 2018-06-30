@@ -1,0 +1,48 @@
+from datetime import date
+from logging import DEBUG, Formatter, INFO, StreamHandler, getLogger
+from logging.handlers import RotatingFileHandler
+from os import makedirs
+from os.path import dirname, exists, join, realpath
+from sys import stdout
+
+LOG_DIR = join(dirname(realpath(__file__)), 'log')
+
+if not exists(LOG_DIR):
+    makedirs(LOG_DIR)
+
+LOG_FILE = join(LOG_DIR, str(date.today()) + '.log')
+print(LOG_FILE)
+LOG_FORMAT = '%(asctime)s %(levelname)s [%(filename)s] [%(lineno)d] %(message)s'
+
+DEFAULT_LOG_LEVEL = INFO
+RF_HANDLER_LEVEL = INFO
+STREAM_HANDLER_LEVEL = DEBUG
+LOG_FILE_SIZE = 1024 * 1024 * 8
+BACKUP_COUNT = 5
+
+LOGGER_NAME = 'TF'
+
+
+def initialize_logger(logger_name):
+    logger = getLogger(logger_name)
+    logger.setLevel(DEFAULT_LOG_LEVEL)
+    fmt = Formatter(LOG_FORMAT)
+
+    # ---------------Adding File Handler--------------------
+    fh = RotatingFileHandler(LOG_FILE,
+                             maxBytes=LOG_FILE_SIZE,
+                             backupCount=BACKUP_COUNT)
+    fh.setLevel(RF_HANDLER_LEVEL)
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+
+    # -----------------Adding Stream Handler-----------------
+    sh = StreamHandler(stdout)
+    sh.setFormatter(fmt)
+    sh.setLevel(STREAM_HANDLER_LEVEL)
+    logger.addHandler(sh)
+
+    return logger
+
+
+initialize_logger(LOGGER_NAME)
