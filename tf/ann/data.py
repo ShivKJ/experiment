@@ -94,7 +94,7 @@ def main():
     init = tf.global_variables_initializer()
 
     with tf.Session() as sess:
-        writer = tf.summary.FileWriter('./mnist/visualize', graph=sess.graph)
+        writer = tf.summary.FileWriter('../mnist/visualize', graph=sess.graph)
         sess.run(init)
 
         def img_clazz(_data: Sequence[Data]):
