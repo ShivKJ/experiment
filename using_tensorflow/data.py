@@ -1,11 +1,11 @@
 from functools import partial
-from typing import Iterable, List
+from typing import List, Sequence, Tuple
 
 import tensorflow as tf
 from PIL import Image
 from numpy import array, ndarray, zeros
 from streamAPI.stream import ParallelStream, Stream
-from streamAPI.utility import (csv_itr, divide_in_chunk, execution_time, files_inside_dir,
+from streamAPI.utility import (csv_itr, execution_time, files_inside_dir,
                                get_file_name)
 
 
@@ -35,8 +35,8 @@ class Data:
         return get_file_name(self.file) + ' -> ' + str(self.clazz)
 
 
-def create_data(_clazz: dict, files: str) -> List[Data]:
-    return [Data(file, _clazz[get_file_name(file)]) for file in files]
+def create_data(_clazz: dict, file: str) -> Data:
+    return Data(file, _clazz[get_file_name(file)])
 
 
 @execution_time()
@@ -53,13 +53,13 @@ def get_data(training: bool) -> List[Data]:
 
     _clazz = Stream(csv_itr(label_file)).mapping(key_mapper, value_mapper)
 
-    batch_processor = partial(create_data, _clazz)
+    worker = 8
+    multiprocessing = True
+    dispatch_size = 1000
 
-    return (files_inside_dir(image_dir, as_type=ParallelStream)
-            .concurrent(8, is_parallel=True)
-            .batch(1000)
-            .map(batch_processor, use_exec=True)
-            .flat_map()
+    return (files_inside_dir(image_dir,
+                             as_type=lambda x: ParallelStream(x, worker, multiprocessing))
+            .batch_processor(partial(create_data, _clazz), dispatch_size)
             .as_seq())
 
 
@@ -67,7 +67,7 @@ def get_data(training: bool) -> List[Data]:
 def main():
     training_data = get_data(training=True)
     testing_data = get_data(training=False)
-
+    
     feature_size = 28 * 28
     hidden_nu = 200
     output_size = 10
@@ -89,7 +89,7 @@ def main():
 
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=L2_L2, labels=y),
                           name='cost')
-    optimization = tf.train.AdamOptimizer(learning_rate=0.01).minimize(cost, name='optimization')
+    optimization = tf.train.AdamOptimizer(learning_rate=0.001).minimize(cost, name='optimization')
 
     init = tf.global_variables_initializer()
 
@@ -97,7 +97,7 @@ def main():
         writer = tf.summary.FileWriter('./mnist/visualize', graph=sess.graph)
         sess.run(init)
 
-        def img_clazz(_data: Iterable[Data]):
+        def img_clazz(_data: Sequence[Data]):
             img = array([pt.feature() for pt in _data])
             clazz = array([pt.label() for pt in _data])
 
@@ -106,24 +106,34 @@ def main():
         epochs = 100
         batch_size = 1000
 
-        for e in range(epochs):
-            avg = 0
+        # ---------------------------------------------------------------------------------
+        def process_batch(_chunk: Tuple[Data, ...]):
+            img, clazz = img_clazz(_chunk)
 
-            for chunk in divide_in_chunk(training_data, batch_size):
-                img, clazz = img_clazz(chunk)
+            _, c = sess.run([optimization, cost], feed_dict={x: img, y: clazz})
 
-                _, c = sess.run([optimization, cost], feed_dict={x: img, y: clazz})
+            return c / batch_size
 
-                avg += c / batch_size
+        def process_training_data():
+            return (Stream(training_data)
+                    .batch(batch_size)
+                    .map(process_batch)
+                    .reduce(lambda x, y: x + y)
+                    .get())
 
-            print(e, avg)
+        # -----------------------------------------------------------------------------------
+
+        (Stream.from_supplier(process_training_data)
+         .enumerate(start=1)
+         .limit(epochs)
+         .for_each(print))
 
         pred_temp = tf.equal(tf.argmax(L2_L2, axis=1), tf.argmax(y, axis=1))
-        accurracy = tf.reduce_mean(tf.cast(pred_temp, dtype=tf.float32))
+        accuracy = tf.reduce_mean(tf.cast(pred_temp, dtype=tf.float32))
 
         img, clazz = img_clazz(testing_data)
 
-        print(accurracy.eval({x: img, y: clazz}))
+        print(accuracy.eval({x: img, y: clazz}))
 
 
 if __name__ == '__main__':
