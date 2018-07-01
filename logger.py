@@ -11,8 +11,7 @@ if not exists(LOG_DIR):
     makedirs(LOG_DIR)
 
 LOG_FILE = join(LOG_DIR, str(date.today()) + '.log')
-print(LOG_FILE)
-LOG_FORMAT = '%(asctime)s %(levelname)s [%(filename)s] [%(lineno)d] %(message)s'
+LOG_FORMAT = '%(asctime)s %(levelname)s [%(pathname)s] [%(lineno)d] %(message)s'
 
 DEFAULT_LOG_LEVEL = INFO
 RF_HANDLER_LEVEL = INFO
