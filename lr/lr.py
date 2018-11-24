@@ -1,11 +1,12 @@
-import numpy as np
 import tensorflow as tf
+from numpy import array, linspace
+from numpy.random import random
 from streamAPI.utility import csv_itr
 
 
 def generate_batch(n: int):
-    x_batch = np.linspace(-1, 1, n)
-    y_batch = 2 * x_batch + np.random.random(x_batch.shape) * 0.3
+    x_batch = linspace(-1, 1, n)
+    y_batch = 2 * x_batch + random(x_batch.shape) * 0.3
     return x_batch, y_batch
 
 
@@ -23,7 +24,7 @@ def vehicle_data():
             float(doc['mpg'])
         ))
 
-    data = np.array(data)
+    data = array(data)
     size = 200
     x_train, y_train = data[:200, :-1], data[:200, -1].reshape((size, 1))
     x_test, y_test = data[200:, :-1], data[200:, -1].reshape((len(data) - size, 1))
@@ -62,14 +63,15 @@ def run():
 
     optimizer = tf.train.AdamOptimizer(learning_rate=learning).minimize(cost)
     init = tf.global_variables_initializer()
+
     writer = tf.summary.FileWriter('./log', graph=tf.get_default_graph())
 
     with tf.Session() as sess:
         sess.run(init)
 
-        for epoch in range(5000):
+        for epoch in range(50000):
             _, batch_cost = sess.run([optimizer, cost], feed_dict={x: x_batch, y: y_batch})
-
+            print(epoch, batch_cost)
         y_t = sess.run(cost, {x: x_test, y: y_test})
 
         print(y_t)

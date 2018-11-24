@@ -12,6 +12,7 @@
 *.sql
 *.txt
 *.pdf
+*.pkl
 *.zip
 *.tar
 *.jpeg
