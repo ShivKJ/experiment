@@ -1,7 +1,7 @@
 import numpy as np
-import tensorflow as tf
-from tensorflow import (Session, Variable, argmax, cast, equal,
-                        global_variables_initializer, nn, placeholder,
+from numpy.random import RandomState
+from sklearn.model_selection import train_test_split
+from tensorflow import (Session, Variable, argmax, cast, equal, float32, global_variables_initializer, nn, placeholder,
                         random_normal, reduce_mean, summary, train)
 
 
@@ -17,7 +17,6 @@ def main(x, y, training_fraction=0.80,
     :param print_at:
     :return:
     """
-
     training_size = int(len(x) * training_fraction)
 
     # if last batch size is less than half of desired batch size then throwing exception.
@@ -26,22 +25,27 @@ def main(x, y, training_fraction=0.80,
     assert training_size % batch_size == 0 or training_size % batch_size > batch_size / 2
     last_batch_size = training_size % batch_size
 
-    training_data_x, training_data_y = x[:training_size], y[:training_size]
-    testing_data_x, testing_data_y = x[training_size:], y[training_size:]
+    _data = train_test_split(x, y, train_size=training_fraction, stratify=y.argmax(1), random_state=0)
+
+    # training_data_x, training_data_y = x[:training_size], y[:training_size]
+    # testing_data_x, testing_data_y = x[training_size:], y[training_size:]
+
+    training_data_x, training_data_y = _data[0], _data[2]
+    testing_data_x, testing_data_y = _data[1], _data[3]
 
     feature_size = training_data_x.shape[1]
     hidden_nu = 20
     output_size = training_data_y.shape[1]
 
-    x = placeholder(tf.float32, [None, feature_size], name='x')
-    y = placeholder(tf.float32, [None, output_size], name='y')
+    x = placeholder(float32, [None, feature_size], name='x')
+    y = placeholder(float32, [None, output_size], name='y')
 
     # also check xavier_initializer
-    W1 = Variable(random_normal([feature_size, hidden_nu]), name='W1')
-    b1 = Variable(random_normal([hidden_nu]), name='b1')
+    W1 = Variable(random_normal([feature_size, hidden_nu], seed=1, dtype=float32), name='W1')
+    b1 = Variable(random_normal([hidden_nu], dtype=float32, seed=2), name='b1')  # use zeros also
 
-    W2 = Variable(random_normal([hidden_nu, output_size]), name='W2')
-    b2 = Variable(random_normal([output_size]), name='b2')
+    W2 = Variable(random_normal([hidden_nu, output_size], seed=3, dtype=float32), name='W2')
+    b2 = Variable(random_normal([output_size], dtype=float32, seed=4), name='b2')
 
     L0_L1 = x @ W1 + b1
     L1_L1 = nn.relu(L0_L1)
@@ -57,7 +61,8 @@ def main(x, y, training_fraction=0.80,
     init = global_variables_initializer()
 
     currect_predictions = equal(argmax(L2_L2, axis=1), argmax(y, axis=1))
-    accuracy = reduce_mean(cast(currect_predictions, tf.float32))
+
+    accuracy = reduce_mean(cast(currect_predictions, float32))
 
     with Session() as sess:
         writer = summary.FileWriter('mnist/visualize', graph=sess.graph)
@@ -68,7 +73,8 @@ def main(x, y, training_fraction=0.80,
         _testing_accuracy_array = []
         # ---------------------------------------------------------------------------------
         for e in range(epochs):
-            _idx = np.random.permutation(training_size)
+
+            _idx = RandomState(e).permutation(training_size)
 
             total_cost = 0
 
@@ -118,8 +124,8 @@ if __name__ == '__main__':
         x, y = data['x'], data['y']
         x = x.reshape(len(x), -1)
 
-        x = x / 255
-        epochs = 500
+        x = x / 255  # check other normalization techniques
+        epochs = 1000
         batch_size = 1000
 
         # experiment with:
