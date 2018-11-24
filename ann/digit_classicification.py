@@ -74,7 +74,8 @@ def main(x, y, training_fraction=0.80,
         # ---------------------------------------------------------------------------------
         for e in range(epochs):
 
-            _idx = RandomState(e).permutation(training_size)
+            _idx = RandomState(e).permutation(training_size)  # check how much does it matter to add
+            # uniformity of data in each batch.
 
             total_cost = 0
 
@@ -123,7 +124,6 @@ if __name__ == '__main__':
         data = pkl.load(f)
         x, y = data['x'], data['y']
         x = x.reshape(len(x), -1)
-
         x = x / 255  # check other normalization techniques
         epochs = 1000
         batch_size = 1000
