@@ -121,6 +121,16 @@ if __name__ == '__main__':
         x = x / 255
         epochs = 500
         batch_size = 1000
+
+        # experiment with:
+        # 1) Initialization methods
+        # 2) batch size
+        # 3) batch normalizations
+        # 4) number of hidden neurons
+        # 5) Regularization techniques
+        # 6) learning rate
+        # 7) Optimizer
+
         cost, training, testing = main(x, y, epochs=epochs, batch_size=batch_size)
 
         es = np.arange(epochs)
