@@ -1,4 +1,4 @@
-import numpy as np
+import tensorflow as tf
 from numpy.random import RandomState
 from sklearn.model_selection import train_test_split
 from tensorflow import (Session, Variable, argmax, cast, equal, float32,
@@ -8,14 +8,14 @@ from tensorflow import (Session, Variable, argmax, cast, equal, float32,
 
 def main(x, y, training_fraction=0.80,
          learning_rate=0.001,
-         epochs=1000, batch_size=1000, print_at=100):
+         epochs=1000, batch_size=1000, update_summary_at=100):
     """
     :param x: shape = m * 786
     :param y: shape = m * 10
     :param training_fraction:
     :param epochs:
     :param batch_size:
-    :param print_at:
+    :param update_summary_at:
     :return:
     """
     training_size = int(len(x) * training_fraction)
@@ -35,7 +35,7 @@ def main(x, y, training_fraction=0.80,
     testing_data_x, testing_data_y = _data[1], _data[3]
 
     feature_size = training_data_x.shape[1]
-    hidden_nu = 10
+    hidden_nu = 20
     output_size = training_data_y.shape[1]
 
     x = placeholder(float32, [None, feature_size], name='x')
@@ -61,19 +61,21 @@ def main(x, y, training_fraction=0.80,
 
     init = global_variables_initializer()
 
-    currect_predictions = equal(argmax(L2_L2, axis=1), argmax(y, axis=1))
+    current_predictions = equal(argmax(L2_L2, axis=1), argmax(y, axis=1))
 
-    accuracy = reduce_mean(cast(currect_predictions, float32))
+    accuracy = tf.round(10000 * reduce_mean(cast(current_predictions, float32))) / 100
 
     with Session() as sess:
         writer = summary.FileWriter('mnist/visualize', graph=sess.graph)
-        cost_summary = summary.scalar('Cost', accuracy)
+
+        cost_summary = summary.scalar('cost', cost)
+        training_accuracy_summary = summary.scalar('training accuracy', accuracy)
+        testing_accuracy_summary = summary.scalar('testing accuracy', accuracy)
+
         sess.run(init)
 
-        _cost_array = []
-        _training_accuracy_array = []
-        _testing_accuracy_array = []
         # ---------------------------------------------------------------------------------
+
         for e in range(epochs):
 
             _idx = RandomState(e).permutation(training_size)  # check how much does it matter to add
@@ -98,34 +100,24 @@ def main(x, y, training_fraction=0.80,
             if last_batch_size != 0:
                 total_cost += mini_batch(training_size - last_batch_size, training_size)
 
-            mean_cost = round(total_cost / training_size, 3)
+            print('epoch:', e, 'total cost:',
+                  round(total_cost, 3))  # check how this 'total_cost' can be fed into summary.
 
-            _training_accuracy = round(100 * sess.run(accuracy, feed_dict={x: training_data_x,
-                                                                           y: training_data_y}), 2)
-            _testing_accuracy = round(100 * sess.run(accuracy, feed_dict={x: testing_data_x,
-                                                                          y: testing_data_y}), 2)
+            if e % update_summary_at == 0:
+                _total_cost, training_accuracy = sess.run([cost_summary, training_accuracy_summary],
+                                                          feed_dict={x: training_data_x, y: training_data_y})
+                writer.add_summary(_total_cost, e)
+                writer.add_summary(training_accuracy, e)
 
-            _cost_array.append(mean_cost)
-            _training_accuracy_array.append(_training_accuracy)
-            _testing_accuracy_array.append(_testing_accuracy)
-
-            writer.add_summary(cost_summary.eval(feed_dict={x: training_data_x,
-                                                            y: training_data_y}), e)
-
-            if e % print_at == 0:
-                print('epoch:', e,
-                      'mean_cost:', mean_cost,
-                      'training_accuracy:', _training_accuracy, '%',
-                      'testing_accuracy:', _testing_accuracy, '%')
+                testing_accuracy = sess.run(testing_accuracy_summary,
+                                            feed_dict={x: testing_data_x, y: testing_data_y})
+                writer.add_summary(testing_accuracy, e)
 
         writer.close()
-
-        return _cost_array, _training_accuracy_array, _testing_accuracy_array
 
 
 if __name__ == '__main__':
     import pickle as pkl
-    from matplotlib import pyplot as plt
 
     with open('data.pkl', 'rb') as f:  # to generate this file, see generate_data.py file.
         data = pkl.load(f)
@@ -144,20 +136,4 @@ if __name__ == '__main__':
         # 6) learning rate
         # 7) Optimizer
 
-        cost, training, testing = main(x, y, epochs=epochs, batch_size=batch_size)
-
-        es = np.arange(epochs)
-
-        plt.plot(es, training, label='training')
-        plt.plot(es, testing, label='testing')
-        plt.xlabel('epoch')
-        plt.ylabel('accuracy')
-
-        plt.legend()
-        plt.show()
-
-        plt.plot(es, cost)
-        plt.xlabel('epoch')
-        plt.ylabel('cost')
-
-        plt.show()
+        main(x, y, epochs=epochs, batch_size=batch_size, update_summary_at=10)
