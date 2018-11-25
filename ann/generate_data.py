@@ -5,7 +5,6 @@ from os.path import join
 
 import numpy as np
 from PIL import Image
-from streamAPI.stream import ParallelStream
 
 
 def load_file(mnist_dir, doc):
@@ -33,6 +32,7 @@ def load_mnist_data(mnist_dir, parallel=False):
             reader = DictReader(f)
 
             if parallel:
+                from streamAPI.stream import ParallelStream
                 itr = ParallelStream(reader).batch_processor(_load_file, 1000)
             else:
                 itr = (_load_file(doc) for doc in reader)
