@@ -18,7 +18,7 @@
 *.jpeg
 *.jpg
 MANIFEST
-
+*.png
 *.pyc
 
 *.egg-info/
@@ -33,3 +33,5 @@ utility/config.py
 dist/
 
 *.out.*
+
+*.ipynb_checkpoints*

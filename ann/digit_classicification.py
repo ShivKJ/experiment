@@ -1,7 +1,8 @@
 import numpy as np
 from numpy.random import RandomState
 from sklearn.model_selection import train_test_split
-from tensorflow import (Session, Variable, argmax, cast, equal, float32, global_variables_initializer, nn, placeholder,
+from tensorflow import (Session, Variable, argmax, cast, equal, float32,
+                        global_variables_initializer, nn, placeholder,
                         random_normal, reduce_mean, summary, train)
 
 
@@ -34,7 +35,7 @@ def main(x, y, training_fraction=0.80,
     testing_data_x, testing_data_y = _data[1], _data[3]
 
     feature_size = training_data_x.shape[1]
-    hidden_nu = 20
+    hidden_nu = 10
     output_size = training_data_y.shape[1]
 
     x = placeholder(float32, [None, feature_size], name='x')
@@ -66,6 +67,7 @@ def main(x, y, training_fraction=0.80,
 
     with Session() as sess:
         writer = summary.FileWriter('mnist/visualize', graph=sess.graph)
+        cost_summary = summary.scalar('Cost', accuracy)
         sess.run(init)
 
         _cost_array = []
@@ -91,7 +93,7 @@ def main(x, y, training_fraction=0.80,
                 return (end_idx - start_idx) * c
 
             for i in range(0, training_size, batch_size):
-                total_cost += mini_batch(i, i + batch_size)
+                total_cost += mini_batch(i, min(i + batch_size, training_size))
 
             if last_batch_size != 0:
                 total_cost += mini_batch(training_size - last_batch_size, training_size)
@@ -107,11 +109,16 @@ def main(x, y, training_fraction=0.80,
             _training_accuracy_array.append(_training_accuracy)
             _testing_accuracy_array.append(_testing_accuracy)
 
+            writer.add_summary(cost_summary.eval(feed_dict={x: training_data_x,
+                                                            y: training_data_y}), e)
+
             if e % print_at == 0:
                 print('epoch:', e,
                       'mean_cost:', mean_cost,
                       'training_accuracy:', _training_accuracy, '%',
                       'testing_accuracy:', _testing_accuracy, '%')
+
+        writer.close()
 
         return _cost_array, _training_accuracy_array, _testing_accuracy_array
 
